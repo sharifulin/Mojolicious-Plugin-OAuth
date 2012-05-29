@@ -1,10 +1,14 @@
-NAME
 
-	Mojolicious::Plugin::OAuth - Plugin with OAuth support for Mojo and Mojolicious.
+=pod
+
+=head2 NAME
+
+Mojolicious::Plugin::OAuth - Plugin with OAuth support for Mojo and Mojolicious.
+
+Uses Net::OAuth::All.
+
+=head2 SYNOPSIS
 	
-	Uses Net::OAuth::All.
-
-SYNOPSIS
 	#!/usr/bin/env perl
 	
 	use Mojolicious::Lite;
@@ -108,17 +112,18 @@ SYNOPSIS
 	</html>
 
 	
-DESCRIPTION
+=head2 DESCRIPTION
 
-	Mojolicious::Plugin::OAuth is a plugin to easily enable OAuth authorization.
+Mojolicious::Plugin::OAuth is a plugin to easily enable OAuth authorization.
 
-PLUGIN CONFIGURE
+=head2 PLUGIN CONFIGURE
 	plugin 'o_auth' => $config;
 	
-	$config is required HASH reference. May consists of many provider configuration. For provider configuration see Net::OAuth::All.
+$config is required HASH reference. May consists of many provider configuration. For provider configuration see Net::OAuth::All.
 	
-HELPERS
-	All received data saves to session in 'oauth' param. Helper return undef on error.
+=head2 HELPERS
+
+All received data saves to session in 'oauth' param. Helper return undef on error.
 	
 	- oauth_login($provider)
 		Make redirect_to to authorization url and obtain request_token and request_token_secret (only for OAuth less then 2.0) for provider $provider (is a key of $config).
@@ -130,17 +135,21 @@ HELPERS
 	- oauth_request
 		You can make protected request to provider API
 
-OAUTH REQUEST
-	Usage:
-		helper('oauth_request'
-			=> provider
-			=> request method
-			=> URL
-			=> core config
-			=> extra request params
-			=> custom request config
-		);
+=head3 OAUTH REQUEST
 	
+Usage:
+
+	helper('oauth_request'
+		=> provider
+		=> request method
+		=> URL
+		=> core config
+		=> extra request params
+		=> custom request config
+	);
+
+Description:
+
 	- provider
 		Is a key of $config.
 	
@@ -159,17 +168,20 @@ OAUTH REQUEST
 	- custom request config
 		Is a HASH reference. You can add or change headers ('headers' key, is a HASH reference) and put POST body - 'body' key, is a string (POST body generates from extra params by default). With 'body' param URL generates with extra params.
 	
-SEE ALSO
+=head2 SEE ALSO
+
 	http://oauth.net
 	
-	For more information about oauth provider configuration see Net::OAuth::All on http://github.com/likhatskiy/Net-OAuth-All
+For more information about oauth provider configuration see Net::OAuth::All on http://github.com/likhatskiy/Net-OAuth-All
 	
-LICENSE AND COPYRIGHT
+=head2 LICENSE AND COPYRIGHT
 
-	Copyright (C) 2010 Alexey Likhatskiy
+Copyright (C) 2010 Alexey Likhatskiy, 2011-2012 Anatoly Sharifulin
 
-	This program is free software; you can redistribute it and/or modify it
-	under the terms of either: the GNU General Public License as published
-	by the Free Software Foundation; or the Artistic License.
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
 
-	See http://dev.perl.org/licenses/ for more information.
+See http://dev.perl.org/licenses/ for more information.
+
+=cut

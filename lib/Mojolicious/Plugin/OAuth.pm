@@ -1,27 +1,19 @@
 package Mojolicious::Plugin::OAuth;
-
 use strict;
 use warnings;
 
 use base 'Mojolicious::Plugin';
 
-our $VERSION = '0.1';
-
-use Mojo::Client;
+use LWP::UserAgent;
 use Net::OAuth::All;
-use Data::Dumper;
+use JSON 'from_json';
+
+our $VERSION = '0.3';
 
 use constant DEBUG => $ENV{'OAUTH_DEBUG'} || 0;
 
-__PACKAGE__->attr('client' => sub {
-	my $c = Mojo::Client
-		->singleton
-		->max_redirects(3);
-	$c->ioloop->connect_timeout(15);
-	$c;
-});
-
-__PACKAGE__->attr('conf', sub { +{} });
+__PACKAGE__->attr(client => sub { LWP::UserAgent->new(timeout => 15) });
+__PACKAGE__->attr(conf   => sub { +{} });
 
 sub register {
 	my ($self, $app, $conf)  = @_;
@@ -50,7 +42,7 @@ sub register {
 }
 
 sub oauth_login {
-	my ($self, $c, $oauth_provider) = @_;
+	my ($self, $c, $oauth_provider, %args) = @_;
 	
 	$c->stash('oauth_provider' => $oauth_provider);
 	
@@ -61,12 +53,12 @@ sub oauth_login {
 	
 	$c->session('oauth', {'oauth_provider' => $oauth_provider});
 	
-	my $oauth = Net::OAuth::All->new(%$conf);
+	my $oauth = Net::OAuth::All->new( %$conf, %args ); # add %args
 	
 	if ($oauth->{'module_version'} eq '2_0') {
 		return $c->redirect_to($oauth->request('authorization')->to_url);
 	} elsif (my $res = $self->make_request($c, $oauth->request('request_token'))) {
-		$oauth->response->from_post_body($res->body);
+		$oauth->response->from_post_body($res->content);
 		if (defined $oauth->token) {
 			DEBUG && $self->_debug($c, "request_token ".$oauth->token);
 			DEBUG && $self->_debug($c, "request_token_secret ".$oauth->token_secret);
@@ -94,6 +86,7 @@ sub oauth_callback {
 	DEBUG && $self->_debug($c, "start oauth callback");
 	
 	my $conf = $self->conf->{$c->stash('oauth_provider')} || {};
+	
 	return $self->_error($c, "Can`t get config!") unless %$conf;
 	
 	my $oauth = Net::OAuth::All->new(
@@ -107,7 +100,15 @@ sub oauth_callback {
 	);
 	
 	if (my $res = $self->make_request($c, $oauth->via('POST')->request('access_token'))) {
-		$oauth->response->from_post_body($res->body);
+		my $content = $res->content;
+		if ($res->headers->content_type =~ /json/) {
+			my $hash = from_json( $content, { utf8  => 1 } );
+			$oauth->response->from_hash( %$hash );
+		}
+		else {
+			$oauth->response->from_post_body( $content );
+		}
+		
 		if ($oauth->token) {
 			DEBUG && $self->_debug($c, "access_token ".$oauth->token);
 			DEBUG && $self->_debug($c, "access_token_secret ".$oauth->token_secret);
@@ -165,28 +166,32 @@ sub make_request {
 	$custom->{'headers'}->{'Authorization'} = $oauth->to_header
 		if ($oauth->version eq '2_0' && $oauth->request_type eq 'protected_resource') || ($oauth->version ne '2_0' && $oauth->via eq 'POST');
 	
-	my $client = $self->client;
-	my $tx     = $client->build_tx(
-		$oauth->via
-		=> ($oauth->via eq 'GET' || $custom->{'body'} ? $oauth->to_url($custom->{'body'} ? 1 : 0) : $oauth->url)
-		=> ($custom->{'headers'} || {})
-		=> $custom->{'body'} || $oauth->to_post_body
+	my $req = HTTP::Request->new(
+		$oauth->via,
+		($oauth->via eq 'GET' || $custom->{'body'} ? $oauth->to_url($custom->{'body'} ? 1 : 0) : $oauth->url),
+		[ %{$custom->{'headers'}||{}} ],
+		$custom->{'body'} || $oauth->to_post_body
 	);
 	
-	DEBUG && $self->_debug($c, $tx->req);
+	DEBUG && $self->_debug($c, $req->as_string);
 	
-	$client->process($tx, sub { $tx = $_[1] });
+	my $res = $self->client->request( $req );
 	
-	#~ warn Dumper $tx;
-	DEBUG && $self->_debug($c, $tx->res);
+	DEBUG && $self->_debug($c, $res->as_string);
 	
-	#~ return undef;
-	return $tx->success || ($c->app->log->error('Error make_request ' . join(' : ', $tx->req, $tx->error, Dumper $oauth->to_hash)) and undef);
+	unless ($res->is_success) { 
+		$c->app->log->error(
+			'Error make_request ' . join(' : ', $req->as_string, $res->status_line, Dumper $oauth->to_hash)
+		);
+		return;
+	}
+	
+	return $res;
 }
 
 sub _debug {
 	my ($self, $c, $error) = @_;
-	$c->app->log->debug("'".$c->stash('oauth_provider')."' PROVIDER OAUTH DEBUG: $error");
+	warn "'".$c->stash('oauth_provider')."' PROVIDER OAUTH DEBUG: $error";
 }
 
 sub _error {
