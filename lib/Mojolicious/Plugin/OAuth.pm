@@ -7,6 +7,7 @@ use base 'Mojolicious::Plugin';
 use LWP::UserAgent;
 use Net::OAuth::All;
 use JSON 'from_json';
+use Data::Dumper;
 
 our $VERSION = '0.3';
 
