@@ -1,20 +1,20 @@
 package Mojolicious::Plugin::OAuth;
+use base 'Mojolicious::Plugin';
+
 use strict;
 use warnings;
-
-use base 'Mojolicious::Plugin';
 
 use LWP::UserAgent;
 use Net::OAuth::All;
 use JSON 'from_json';
 use Data::Dumper;
 
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 
 use constant DEBUG => $ENV{'OAUTH_DEBUG'} || 0;
 
-__PACKAGE__->attr(client => sub { LWP::UserAgent->new(timeout => 15) });
-__PACKAGE__->attr(conf   => sub { +{} });
+has client => sub { LWP::UserAgent->new(timeout => 15) };
+has conf   => sub { +{} };
 
 sub register {
 	my ($self, $app, $conf)  = @_;

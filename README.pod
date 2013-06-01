@@ -24,12 +24,12 @@ Uses Net::OAuth::All.
 	};
 	
 	# Mojolicious
-	$self->plugin('o_auth' => $config);
+	$self->plugin('OAuth' => $config);
 	# ...
 	
 	# Mojolicious::Lite
 	$ENV{'OAUTH_DEBUG'} = 1;
-	plugin 'o_auth' => $config;
+	plugin 'OAuth' => $config;
 	
 	
 	get '/'                => 'index';
@@ -176,7 +176,8 @@ For more information about oauth provider configuration see Net::OAuth::All on h
 	
 =head2 LICENSE AND COPYRIGHT
 
-Copyright (C) 2010 Alexey Likhatskiy, 2011-2012 Anatoly Sharifulin
+Copyright (C) 2011-2013 Anatoly Sharifulin
+Copyright (C) 2010 Alexey Likhatskiy
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
